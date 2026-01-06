@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+
+  web:
+    image: rubiku.be/web
+    restart: unless-stopped
+    networks:
+      - default
+      - traefik_reverse_proxy
+    build:
+      context: .
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rubikube-web.rule=Host(`rubiku.be`, `www.rubiku.be`)"
+      - "traefik.http.routers.rubikube-web.tls.certresolver=letsencrypt"
+
+networks:
+  default:
+    driver: bridge
+  traefik_reverse_proxy:
+    external: true
