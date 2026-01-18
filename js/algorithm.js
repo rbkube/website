@@ -9,7 +9,7 @@ const INITIAL_CAMERA_POSITION = { x: -8, y: 3, z: 4 };
 const FINAL_CAMERA_POSITION = { x: -8, y: 0, z: 0 };
 const INITIAL_EDGE_RADIUS = 0.03;
 const FINAL_EDGE_RADIUS = 0.08;
-const LOOP_PAUSE_DURATION = 2000;
+const LOOP_PAUSE_DURATION = 500;
 
 // Parse algorithm string into moves array
 function parseAlgorithm(algoString) {
