@@ -1,15 +1,18 @@
 * {
 	margin: 0;
 	padding: 0;
-	font-family: Rubik,sans-serif;
+	font-family: Rubik, sans-serif;
 }
+
 body {
 	background: #f9f9f9;
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	flex-direction: column;
 	min-height: 100vh;
 }
+
 canvas {
 	display: block;
 	position: fixed;
@@ -18,55 +21,62 @@ canvas {
 	z-index: -1;
 }
 
-a {
-	color: 'white';
+#canvas-container {
+	width: 100vw;
+	height: 600px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
 }
 
-a.button2 {
-	display:inline-block;
+#controls {
+	position: absolute;
+	display: none;
+	top: 20px;
+	left: 20px;
+	z-index: 100;
+	background: rgba(255, 255, 255, 0.9);
+	padding: 20px;
 	border-radius: 10px;
-	padding:0.5em 3em;
-	border:0.16em solid #222628;
-	margin:0 0.3em 0.3em 0;
-	box-sizing: border-box;
-	text-decoration:none;
-	text-transform:uppercase;
-	font-family:'Rubik',sans-serif;
-	font-weight:400;
-	color:#222628;
-	text-align:center;
-	transition: all 0.15s;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-a.button2:hover {
-	color:#225095;
-	border-color:#225095;
+button, .button {
+	background: #333;
+	color: white;
+	border: none;
+	padding: 12px 24px;
+	margin: 5px;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: bold;
+	transition: background 0.3s;
 }
 
-a.button2:active {
-	color:#225095;
-	border-color:#225095;
+button:hover, .button:hover {
+	background: #555;
 }
 
-@media all and (max-width:30em) {
-	a.button2 {
-		display: block;
-		margin: 0.4em auto;
-	};
+button:disabled, .button:disabled {
+	background: #ccc;
+	cursor: not-allowed;
 }
 
-#logo {
-	width: 700px;
-	max-width: 80vw;
-	/* color: white; */
-	text-align: center;
+.button-row {
+	display: flex;
+	gap: 5px;
+	margin: 5px 0;
 }
 
-#logo img {
-	width: 100%;
-	/* margin: 30px; */
+#status {
+	margin-top: 10px;
+	font-size: 12px;
+	color: #666;
 }
 
-#logo a {
-	margin: 30px;
+h3 {
+	margin: 0 0 10px 0;
+	color: #333;
 }

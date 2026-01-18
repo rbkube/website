@@ -1,20 +1,43 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
+	<meta charset="UTF-8">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap"
+		rel="stylesheet">
+	<title>RUBIKU.BE</title>
 	<link rel="stylesheet" type="text/css" href="style.css">
-	<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Rubik" />
 	<title>RUBIKU.BE</title>
 	<meta name="description" content="Welcome to RUBIKU.BE 😊 Feel free to contact us!">
 </head>
 
 <body>
-	<div id="logo">
-		<img src="logo.gif" alt="RUBIKU.BE" />
-		<div>.</div>
-		<a class="button2" href="mailto:yo@rubiku.be">Contact</a>
+	<div id="controls">
+		<h3>🎲 Rubik's Cube Controls</h3>
+		<div class="button-row">
+			<button id="executeBtn">Execute All</button>
+			<button id="resetBtn">Reset Cube</button>
+		</div>
+		<div class="button-row">
+			<button id="prevBtn">← Previous</button>
+			<button id="nextBtn">Next →</button>
+		</div>
+		<div id="status">Ready - 0/19 moves</div>
 	</div>
-	<!-- <script src="script.js"></script> -->
+	<div id="canvas-container"></div>
+	<button onclick="executeAlgorithm()">&#8635;</button>
+	<a class="button" href="mailto:yo@rubiku.be">Contact Us</a>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+	<script type="text/javascript" src="js/config.js"></script>
+	<script type="text/javascript" src="js/cube-builder.js"></script>
+	<script type="text/javascript" src="js/algorithm.js"></script>
+	<script type="text/javascript" src="js/controls.js"></script>
+	<script type="text/javascript" src="js/scene.js"></script>
+	<script type="text/javascript" src="js/rubik.js"></script>
 </body>
 
 </html>
