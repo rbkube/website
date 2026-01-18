@@ -1,92 +1,8 @@
-// Build the 3x3x3 cube
-function buildCube() {
-  const size = CUBE_SIZE;
-  const gap = CUBE_GAP;
-  const radius = EDGE_RADIUS;
-  const positions = [-1, 0, 1];
-  const padding = 0.15;
-
-  cubies = [];
-  cubeCounter = 1;
-
-  for (let x of positions) {
-    for (let y of positions) {
-      for (let z of positions) {
-        const cubeNumber = cubeCounter;
-        const isLetterCube = letterCubes[cubeNumber];
-
-        if (isLetterCube) {
-          const cubieGroup = new THREE.Group();
-
-          if (isLetterCube.solidCube) {
-            // Solid cube (cube 19 - blue) with rounded corners
-            const solidSize = size - 2 * padding;
-            const roundedCubeGeo = createRoundedBoxGeometry(
-              solidSize,
-              solidSize,
-              solidSize,
-              0.1,
-              8,
-            );
-            const solidMat = new THREE.MeshPhongMaterial({
-              color: isLetterCube.color,
-              shininess: MATERIAL_FLATNESS,
-              specular: 0x222222,
-              side: THREE.DoubleSide,
-            });
-            const solidMesh = new THREE.Mesh(roundedCubeGeo, solidMat);
-            cubieGroup.add(solidMesh);
-
-            // Add backing faces (excluding right face for cube 19)
-            addBackingFaces(cubieGroup, x, y, z, size, cubeNumber);
-          } else {
-            // Letter cube - add backing faces and letter
-            addBackingFaces(cubieGroup, x, y, z, size, cubeNumber);
-            createLetterMesh(
-              isLetterCube.letter,
-              isLetterCube.color,
-              cubieGroup,
-              isLetterCube.mirror,
-              isLetterCube.rotation,
-            );
-          }
-
-          cubieGroup.position.set(
-            x * (size + gap),
-            y * (size + gap),
-            z * (size + gap),
-          );
-          cubieGroup.userData.gridPosition = { x, y, z };
-          cubeGroup.add(cubieGroup);
-          cubies.push(cubieGroup);
-        } else {
-          // Normal cube
-          const cubieGroup = new THREE.Group();
-          addBackingFaces(cubieGroup, x, y, z, size, cubeNumber);
-          cubieGroup.position.set(
-            x * (size + gap),
-            y * (size + gap),
-            z * (size + gap),
-          );
-          cubieGroup.userData.gridPosition = { x, y, z };
-          cubeGroup.add(cubieGroup);
-          cubies.push(cubieGroup);
-        }
-
-        cubeCounter++;
-      }
-    }
-  }
-
-  addContinuousEdges();
-}
-
 // Create a rounded box geometry (like CSS border-radius)
 function createRoundedBoxGeometry(width, height, depth, radius, smoothness) {
   const shape = new THREE.Shape();
   const eps = 0.00001;
   const radius0 = radius - eps;
-
   shape.absarc(eps, eps, eps, -Math.PI / 2, -Math.PI, true);
   shape.absarc(eps, height - radius * 2, eps, Math.PI, Math.PI / 2, true);
   shape.absarc(
@@ -98,7 +14,6 @@ function createRoundedBoxGeometry(width, height, depth, radius, smoothness) {
     true,
   );
   shape.absarc(width - radius * 2, eps, eps, 0, -Math.PI / 2, true);
-
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: depth - radius * 2,
     bevelEnabled: true,
@@ -108,31 +23,30 @@ function createRoundedBoxGeometry(width, height, depth, radius, smoothness) {
     bevelThickness: radius,
     curveSegments: smoothness,
   });
-
   geometry.center();
   return geometry;
 }
 
-// Add backing faces with borders (excluding specific faces for letter cubes)
+// Add backing faces with borders
 function addBackingFaces(group, x, y, z, size, cubeNumber) {
   const faceSize = size * 0.95;
   const borderSize = size;
 
-  // Define which face to exclude for each letter cube
-  const excludeFaces = {
-    3: "front", // R
-    10: "bottom", // U top
-    27: "right", // B right
-    18: "top", // I
-    5: "left", // K
-    8: "top", // U bottom
-    4: "back", // B back
-    21: "front", // E
-    19: "right", // Blue cube
+  // Define which face is pointing left in the FINAL state for each letter cube
+  // This is the face where the letter/blue box is visible
+  const leftFacingInFinalState = {
+    3: "front", // R - front face points left in final state
+    10: "bottom", // U - bottom face points left in final state
+    27: "right", // B - right face points left in final state
+    18: "top", // I - top face points left in final state
+    5: "left", // K - left face points left in final state
+    8: "top", // U - top face points left in final state
+    4: "back", // B - back face points left in final state
+    21: "front", // E - front face points left in final state
+    19: "right", // Blue cube - right face points left in final state
   };
 
-  const excludeFace = excludeFaces[cubeNumber];
-  const isLetterCube = !!excludeFace;
+  const targetFace = leftFacingInFinalState[cubeNumber];
 
   const faceConfigs = [
     {
@@ -180,18 +94,9 @@ function addBackingFaces(group, x, y, z, size, cubeNumber) {
   ];
 
   faceConfigs.forEach((config) => {
-    // Check if this face should be transparent (excluded)
-    const isExcludedFace = config.name === excludeFace;
-
-    // Only skip if it's the excluded face AND that face direction is on the left side
-    const shouldBeTransparent =
-      isExcludedFace && config.name === "left" && x === -1; // Left face on left side
-
-    if (shouldBeTransparent) {
-      return; // Skip this face (transparent for letter)
-    }
-
     if (config.isColored) {
+      const isTargetFace = targetFace === config.name;
+
       // Dark border
       const borderGeo = new THREE.PlaneGeometry(borderSize, borderSize);
       const borderMat = new THREE.MeshBasicMaterial({
@@ -201,6 +106,13 @@ function addBackingFaces(group, x, y, z, size, cubeNumber) {
       const borderMesh = new THREE.Mesh(borderGeo, borderMat);
       borderMesh.position.set(...config.pos);
       borderMesh.rotation.set(...config.rot);
+
+      // Mark border if it's the target face
+      if (isTargetFace) {
+        borderMesh.userData.isTargetFaceBorder = true;
+        borderMesh.userData.originalFaceName = config.name;
+      }
+
       group.add(borderMesh);
 
       // Colored face
@@ -222,94 +134,69 @@ function addBackingFaces(group, x, y, z, size, cubeNumber) {
           (config.pos[2] > 0 ? offset : config.pos[2] < 0 ? -offset : 0),
       );
       faceMesh.rotation.set(...config.rot);
-      group.add(faceMesh);
-    } else if (isExcludedFace) {
-      // This is an excluded face but NOT on the left side - add colored face
-      // Determine color based on face direction
-      const borderGeo = new THREE.PlaneGeometry(borderSize, borderSize);
-      const borderMat = new THREE.MeshBasicMaterial({
-        color: COLOR_EDGE,
-        side: THREE.FrontSide,
-      });
-      const borderMesh = new THREE.Mesh(borderGeo, borderMat);
-      borderMesh.position.set(...config.pos);
-      borderMesh.rotation.set(...config.rot);
-      group.add(borderMesh);
 
-      const faceGeo = new THREE.PlaneGeometry(faceSize, faceSize);
-      const faceMat = new THREE.MeshPhongMaterial({
-        color: config.color,
-        shininess: MATERIAL_FLATNESS,
-        specular: 0x222222,
-        side: THREE.FrontSide,
-      });
-      const faceMesh = new THREE.Mesh(faceGeo, faceMat);
-      const offset = 0.001;
-      faceMesh.position.set(
-        config.pos[0] +
-          (config.pos[0] > 0 ? offset : config.pos[0] < 0 ? -offset : 0),
-        config.pos[1] +
-          (config.pos[1] > 0 ? offset : config.pos[1] < 0 ? -offset : 0),
-        config.pos[2] +
-          (config.pos[2] > 0 ? offset : config.pos[2] < 0 ? -offset : 0),
-      );
-      faceMesh.rotation.set(...config.rot);
+      // Mark this face if it's the target face for a letter cube
+      if (isTargetFace) {
+        faceMesh.userData.isTargetFace = true;
+        faceMesh.userData.originalFaceName = config.name;
+      }
+
       group.add(faceMesh);
     }
   });
 }
 
-// Update face visibility based on current position
-function updateFaceVisibility() {
-  const excludeFaces = {
-    3: "front",
-    10: "bottom",
-    27: "right",
-    18: "top",
-    5: "left",
-    8: "top",
-    4: "back",
-    21: "front",
-    19: "right",
-  };
+// Create 3D letter mesh (simplified - no outline)
+function createLetterMesh(
+  letter,
+  color,
+  group,
+  mirror = false,
+  rotation = { x: 0, y: 0, z: 0 },
+) {
+  const loader = new THREE.FontLoader();
+  loader.load(
+    "fonts/rubik.json",
+    function (font) {
+      const textGeo = new THREE.TextGeometry(letter, {
+        font: font,
+        size: 0.75,
+        height: 0.25,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 0.015,
+        bevelSize: 0.008,
+        bevelSegments: 3,
+      });
+      textGeo.center();
 
-  cubies.forEach((cubie, index) => {
-    const cubeNumber = index + 1;
-    const excludedFaceName = excludeFaces[cubeNumber];
+      const textMaterial = new THREE.MeshPhongMaterial({
+        color: color,
+        shininess: MATERIAL_FLATNESS,
+        specular: 0x222222,
+        side: THREE.DoubleSide,
+      });
 
-    if (!excludedFaceName) return; // Not a letter cube
-
-    const gridPos = cubie.userData.gridPosition;
-    const isOnLeftSide = gridPos.x === -1;
-
-    // Find the excluded face mesh and toggle visibility
-    cubie.children.forEach((child) => {
-      // Check if this is a colored face plane (not border, not letter)
-      if (
-        child.geometry &&
-        child.geometry.type === "PlaneGeometry" &&
-        child.material &&
-        child.material.color
-      ) {
-        const pos = child.position;
-
-        // Determine which face this is based on position
-        let faceName = null;
-        if (Math.abs(pos.x - -CUBE_SIZE / 2) < 0.01) faceName = "left";
-        else if (Math.abs(pos.x - CUBE_SIZE / 2) < 0.01) faceName = "right";
-        else if (Math.abs(pos.y - CUBE_SIZE / 2) < 0.01) faceName = "top";
-        else if (Math.abs(pos.y - -CUBE_SIZE / 2) < 0.01) faceName = "bottom";
-        else if (Math.abs(pos.z - CUBE_SIZE / 2) < 0.01) faceName = "front";
-        else if (Math.abs(pos.z - -CUBE_SIZE / 2) < 0.01) faceName = "back";
-
-        // If this is the excluded face
-        if (faceName === excludedFaceName) {
-          // Make visible only if NOT on left side
-          child.visible = !isOnLeftSide;
-        }
+      const textMesh = new THREE.Mesh(textGeo, textMaterial);
+      if (mirror) {
+        textMesh.scale.x = -1;
       }
-    });
-  });
+
+      textMesh.rotation.set(rotation.x, rotation.y, rotation.z);
+
+      // Mark as letter so we can control visibility
+      textMesh.userData.isLetter = true;
+
+      group.add(textMesh);
+    },
+    undefined,
+    function (error) {
+      console.error(
+        "Error loading Rubik font. Make sure fonts/rubik.json exists:",
+        error,
+      );
+    },
+  );
 }
 
 // Add continuous edges that span the entire 3x3x3 cube
@@ -370,54 +257,162 @@ function addContinuousEdges() {
   });
 }
 
-// Create 3D letter mesh (simplified - no outline)
-function createLetterMesh(
-  letter,
-  color,
-  group,
-  mirror = false,
-  rotation = { x: 0, y: 0, z: 0 },
-) {
-  const loader = new THREE.FontLoader();
+// Update face visibility based on current position
+function updateFaceVisibility() {
+  // Letter cube numbers with their target face
+  const leftFacingInFinalState = {
+    3: "front",
+    10: "bottom",
+    27: "right",
+    18: "top",
+    5: "left",
+    8: "top",
+    4: "back",
+    21: "front",
+    19: "right",
+  };
 
-  loader.load(
-    "fonts/rubik.json",
-    function (font) {
-      const textGeo = new THREE.TextGeometry(letter, {
-        font: font,
-        size: 0.75,
-        height: 0.25,
-        curveSegments: 12,
-        bevelEnabled: true,
-        bevelThickness: 0.015,
-        bevelSize: 0.008,
-        bevelSegments: 3,
-      });
+  cubies.forEach((cubie, index) => {
+    const cubeNumber = index + 1;
+    const targetFaceName = leftFacingInFinalState[cubeNumber];
 
-      textGeo.center();
+    if (!targetFaceName) return; // Not a letter cube
 
-      const textMaterial = new THREE.MeshPhongMaterial({
-        color: color,
-        shininess: MATERIAL_FLATNESS,
-        specular: 0x222222,
-        side: THREE.DoubleSide,
-      });
+    // Get the original target face normal
+    const originalNormal = new THREE.Vector3();
+    switch (targetFaceName) {
+      case "left":
+        originalNormal.set(-1, 0, 0);
+        break;
+      case "right":
+        originalNormal.set(1, 0, 0);
+        break;
+      case "top":
+        originalNormal.set(0, 1, 0);
+        break;
+      case "bottom":
+        originalNormal.set(0, -1, 0);
+        break;
+      case "front":
+        originalNormal.set(0, 0, 1);
+        break;
+      case "back":
+        originalNormal.set(0, 0, -1);
+        break;
+    }
 
-      const textMesh = new THREE.Mesh(textGeo, textMaterial);
+    // Apply the cubie's rotation to the normal
+    const rotatedNormal = originalNormal.clone();
+    rotatedNormal.applyQuaternion(cubie.quaternion);
 
-      if (mirror) {
-        textMesh.scale.x = -1;
+    // Check if this face is now pointing left (negative X in world space)
+    const isPointingLeft = rotatedNormal.x < -0.9; // Threshold for left direction
+
+    cubie.children.forEach((child) => {
+      // Handle target faces and borders
+      if (
+        child.userData &&
+        (child.userData.isTargetFace || child.userData.isTargetFaceBorder)
+      ) {
+        // Hide face/border if pointing left, show otherwise
+        child.visible = !isPointingLeft;
       }
 
-      textMesh.rotation.set(rotation.x, rotation.y, rotation.z);
-      group.add(textMesh);
-    },
-    undefined,
-    function (error) {
-      console.error(
-        "Error loading Rubik font. Make sure fonts/rubik.json exists:",
-        error,
-      );
-    },
-  );
+      // Handle letters and blue cube (solid mesh)
+      if (child.userData && child.userData.isLetter) {
+        // Show letter only if pointing left
+        child.visible = isPointingLeft;
+      }
+
+      // Handle blue cube solid mesh
+      if (child.geometry && child.geometry.type === "ExtrudeGeometry") {
+        // This is the blue solid cube - show only if pointing left
+        child.visible = isPointingLeft;
+      }
+    });
+  });
+}
+
+// Build the 3x3x3 cube
+function buildCube() {
+  const size = CUBE_SIZE;
+  const gap = CUBE_GAP;
+  const radius = EDGE_RADIUS;
+  const positions = [-1, 0, 1];
+  const padding = 0.15;
+
+  cubies = [];
+  cubeCounter = 1;
+
+  for (let x of positions) {
+    for (let y of positions) {
+      for (let z of positions) {
+        const cubeNumber = cubeCounter;
+        const isLetterCube = letterCubes[cubeNumber];
+
+        if (isLetterCube) {
+          const cubieGroup = new THREE.Group();
+
+          if (isLetterCube.solidCube) {
+            // Solid cube (cube 19 - blue) with rounded corners
+            const solidSize = size - 2 * padding;
+            const roundedCubeGeo = createRoundedBoxGeometry(
+              solidSize,
+              solidSize,
+              solidSize,
+              0.1,
+              8,
+            );
+            const solidMat = new THREE.MeshPhongMaterial({
+              color: isLetterCube.color,
+              shininess: MATERIAL_FLATNESS,
+              specular: 0x222222,
+              side: THREE.DoubleSide,
+            });
+            const solidMesh = new THREE.Mesh(roundedCubeGeo, solidMat);
+            cubieGroup.add(solidMesh);
+
+            // Add backing faces
+            addBackingFaces(cubieGroup, x, y, z, size, cubeNumber);
+          } else {
+            // Letter cube - add backing faces and letter
+            addBackingFaces(cubieGroup, x, y, z, size, cubeNumber);
+            createLetterMesh(
+              isLetterCube.letter,
+              isLetterCube.color,
+              cubieGroup,
+              isLetterCube.mirror,
+              isLetterCube.rotation,
+            );
+          }
+
+          cubieGroup.position.set(
+            x * (size + gap),
+            y * (size + gap),
+            z * (size + gap),
+          );
+          cubieGroup.userData.gridPosition = { x, y, z };
+          cubeGroup.add(cubieGroup);
+          cubies.push(cubieGroup);
+        } else {
+          // Normal cube
+          const cubieGroup = new THREE.Group();
+          addBackingFaces(cubieGroup, x, y, z, size, cubeNumber);
+
+          cubieGroup.position.set(
+            x * (size + gap),
+            y * (size + gap),
+            z * (size + gap),
+          );
+          cubieGroup.userData.gridPosition = { x, y, z };
+          cubeGroup.add(cubieGroup);
+          cubies.push(cubieGroup);
+        }
+
+        cubeCounter++;
+      }
+    }
+  }
+
+  addContinuousEdges();
 }
